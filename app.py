@@ -17,8 +17,8 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-TEMP_DIR = Path("temp")
-TEMP_DIR.mkdir(exist_ok=True)
+TEMP_DIR = Path(tempfile.gettempdir()) / "smartcompress"
+TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ── Dep check (pure pip — no system tools) ────────────────────────────────────
