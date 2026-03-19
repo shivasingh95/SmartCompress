@@ -1,28 +1,12 @@
 """
 Media Analyzer Module
 Extracts metadata using pure Python libraries only.
-Audio: pydub + librosa | Video: moviepy
+Audio: soundfile | Video: moviepy
 """
 
-import warnings
 from pathlib import Path
 
-import librosa
-from utils.ffmpeg import configure_bundled_ffmpeg
-
-_BUNDLED_FFMPEG = configure_bundled_ffmpeg()
-
-with warnings.catch_warnings():
-    warnings.filterwarnings(
-        "ignore",
-        message="Couldn't find ffmpeg or avconv - defaulting to ffmpeg, but may not work",
-        category=RuntimeWarning,
-        module="pydub.utils",
-    )
-    from pydub import AudioSegment
-
-AudioSegment.converter = _BUNDLED_FFMPEG
-AudioSegment.ffmpeg = _BUNDLED_FFMPEG
+import soundfile as sf
 
 try:
     from moviepy import VideoFileClip
@@ -46,17 +30,11 @@ class MediaAnalyzer:
         codec       = p.suffix.lstrip(".").upper()
 
         try:
-            if p.suffix.lower() == ".wav":
-                audio       = AudioSegment.from_wav(path)
-                duration    = round(len(audio) / 1000.0, 2)
-                sample_rate = audio.frame_rate
-                channels    = audio.channels
-            else:
-                y, sr       = librosa.load(path, sr=None, mono=False)
-                duration    = round(librosa.get_duration(y=y, sr=sr), 2)
-                sample_rate = sr
-                channels    = int(y.shape[0]) if getattr(y, "ndim", 1) > 1 else 1
-
+            audio_info   = sf.info(path)
+            duration     = round(float(audio_info.duration), 2)
+            sample_rate  = int(audio_info.samplerate or 0)
+            channels     = int(audio_info.channels or 0)
+            codec        = audio_info.subtype or codec
             bitrate_kbps = round((size_bytes * 8) / (duration * 1000), 1) if duration > 0 else 0
         except Exception:
             pass

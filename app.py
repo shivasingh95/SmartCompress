@@ -1,7 +1,7 @@
 """
 Smart Multimedia Compression & Analyzer System
 Pure Python — no system FFmpeg required.
-Uses: moviepy · pydub · librosa · imageio-ffmpeg (all via pip)
+Uses: moviepy · pydub · soundfile · imageio-ffmpeg (all via pip)
 """
 
 import streamlit as st
@@ -47,9 +47,9 @@ def check_deps() -> tuple[bool, list]:
     except ImportError:
         missing.append("pydub")
     try:
-        import librosa
+        import soundfile
     except ImportError:
-        missing.append("librosa")
+        missing.append("soundfile")
     return len(missing) == 0, missing
 
 deps_ok, missing_deps = check_deps()
@@ -129,7 +129,7 @@ with col_info:
     <div class="feature-list">
         <div class="feature-item">🐍 <strong>moviepy</strong> — Video encode/decode (bundled codec)</div>
         <div class="feature-item">🎵 <strong>pydub</strong> — Audio compression to MP3</div>
-        <div class="feature-item">📊 <strong>librosa</strong> — Deep audio intelligence & analysis</div>
+        <div class="feature-item">📊 <strong>soundfile</strong> — Audio metadata & signal analysis</div>
         <div class="feature-item">🤖 <strong>AI Smart Advisor</strong> — Content-aware recommendations</div>
         <div class="feature-item">📡 <strong>Bandwidth + CDN Simulator</strong> — Real-world impact</div>
     </div>

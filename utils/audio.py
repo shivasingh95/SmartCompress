@@ -1,14 +1,14 @@
 """
 Audio Processing Module
-Uses pydub (with imageio-ffmpeg bundled codec) + librosa for analysis.
+Uses pydub (with imageio-ffmpeg bundled codec) + soundfile/numpy for analysis.
 No system FFmpeg installation required — everything via pip.
 """
 
 import warnings
 from pathlib import Path
 
-import librosa
 import numpy as np
+import soundfile as sf
 
 from utils.ffmpeg import configure_bundled_ffmpeg
 
@@ -67,27 +67,40 @@ class AudioProcessor:
 
     def get_intelligence(self, input_path: str) -> dict:
         """
-        Deep audio analysis using librosa:
-        silence ratio, RMS energy, spectral centroid, tempo estimate.
+        Lightweight audio analysis using soundfile + numpy.
         """
         try:
-            y, sr = librosa.load(input_path, sr=None, mono=True)
-            duration = librosa.get_duration(y=y, sr=sr)
+            y, sr = sf.read(input_path, always_2d=False)
+            if getattr(y, "ndim", 1) > 1:
+                y = np.mean(y, axis=1)
+            y = np.asarray(y, dtype=np.float32)
+            duration = len(y) / sr if sr else 0.0
 
             # RMS energy
-            rms = float(np.sqrt(np.mean(y ** 2)))
+            rms = float(np.sqrt(np.mean(y ** 2))) if len(y) > 0 else 0.0
 
-            # Silence ratio (frames below threshold)
-            frame_rms   = librosa.feature.rms(y=y)[0]
-            thresh      = 0.01
+            # Silence ratio from short fixed windows.
+            frame_size = max(1, sr // 20) if sr else 1
+            if len(y) >= frame_size:
+                usable = len(y) - (len(y) % frame_size)
+                frames = y[:usable].reshape(-1, frame_size) if usable > 0 else y.reshape(1, -1)
+                frame_rms = np.sqrt(np.mean(frames ** 2, axis=1))
+            else:
+                frame_rms = np.array([rms], dtype=np.float32)
+
+            thresh = 0.01
             silence_ratio = float(np.mean(frame_rms < thresh))
 
-            # Spectral centroid (brightness)
-            centroid = float(np.mean(librosa.feature.spectral_centroid(y=y, sr=sr)))
+            # Approximate spectral centroid from the magnitude spectrum.
+            if len(y) > 0 and sr:
+                spectrum = np.abs(np.fft.rfft(y))
+                freqs = np.fft.rfftfreq(len(y), d=1.0 / sr)
+                centroid = float(np.sum(freqs * spectrum) / np.sum(spectrum)) if np.sum(spectrum) > 0 else 0.0
+            else:
+                centroid = 0.0
 
-            # Tempo
-            tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
-            tempo = float(tempo) if tempo else 0.0
+            # Tempo estimation is optional in this lightweight path.
+            tempo = 0.0
 
             # Dynamic range
             peak = float(np.max(np.abs(y))) if len(y) > 0 else 0.0
