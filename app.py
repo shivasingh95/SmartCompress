@@ -10,25 +10,12 @@ import time
 import tempfile
 from pathlib import Path
 
-from utils.audio       import AudioProcessor
-from utils.video       import VideoProcessor
-from utils.analyzer    import MediaAnalyzer
-from utils.intelligence import SmartAdvisor
-from utils.bandwidth   import BandwidthSimulator
-from utils.ui_components import (
-    render_header, render_metrics_row, render_compression_chart,
-    render_bandwidth_table, render_roi_gauge, render_file_info_card,
-    render_advisor_card, apply_custom_css,
-)
-
 st.set_page_config(
     page_title="SmartCompress AI",
     page_icon="🎛️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
-apply_custom_css()
 
 TEMP_DIR = Path("temp")
 TEMP_DIR.mkdir(exist_ok=True)
@@ -50,15 +37,32 @@ def check_deps() -> tuple[bool, list]:
         import soundfile
     except ImportError:
         missing.append("soundfile")
+    try:
+        import plotly
+    except ImportError:
+        missing.append("plotly")
     return len(missing) == 0, missing
 
 deps_ok, missing_deps = check_deps()
 
 if not deps_ok:
-    render_header()
     st.error(f"❌ Missing packages: `{', '.join(missing_deps)}`")
     st.code("pip install -r requirements.txt", language="bash")
     st.stop()
+    raise SystemExit
+
+from utils.audio       import AudioProcessor
+from utils.video       import VideoProcessor
+from utils.analyzer    import MediaAnalyzer
+from utils.intelligence import SmartAdvisor
+from utils.bandwidth   import BandwidthSimulator
+from utils.ui_components import (
+    render_header, render_metrics_row, render_compression_chart,
+    render_bandwidth_table, render_roi_gauge, render_file_info_card,
+    render_advisor_card, apply_custom_css,
+)
+
+apply_custom_css()
 
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
